@@ -1,0 +1,63 @@
+name: Windows release from tag
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "[0-9]*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Set application version from tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/tag-version.cjs
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build Windows installer
+        run: npm run make
+      - name: Test shipped application and terminal
+        run: |
+          npm run smoke
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:terminal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Keep build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: screen-harbor-${{ github.ref_name }}-windows-x64
+          path: out/make/squirrel.windows/x64/*
+          if-no-files-found: error
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $files = @(Get-ChildItem out/make/squirrel.windows/x64 -File | ForEach-Object { $_.FullName })
+          gh release view $env:RELEASE_TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:RELEASE_TAG @files --clobber
+          } else {
+            gh release create $env:RELEASE_TAG @files --verify-tag --title "Screen Harbor $env:RELEASE_TAG" --generate-notes
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
