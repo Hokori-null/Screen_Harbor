@@ -38,7 +38,9 @@ const remote = new Server({ hostKeys: [key] }, (client) => {
           ch.exit(0);
           ch.end();
         } else if (info.command === "LC_ALL=C screen -ls") {
-          ch.write("\t123.work\t(Detached)\n\t456.logs\t(Detached)\n");
+          ch.write(
+            "\t123.work\t(Detached)\n\t456.logs\t(Detached)\n\t789.build\t(Detached)\n\t999.extra\t(Detached)\n",
+          );
           ch.exit(0);
           ch.end();
         } else if (info.command.startsWith("screen -r")) {
@@ -79,7 +81,21 @@ app.on("browser-window-created", (_e, win) => {
         `[...document.querySelectorAll('button')].find(b=>b.textContent==='连接服务器').click()`,
       );
       await until(() =>
-        js(`document.querySelectorAll('.session-row').length === 2`),
+        js(`document.querySelectorAll('.session-row').length === 3`),
+      );
+      await js(
+        `[...document.querySelectorAll('.session-pagination button')].find(b => b.textContent === '下一页').click()`,
+      );
+      await until(() =>
+        js(
+          `document.querySelectorAll('.session-row').length === 1 && document.querySelector('.session-row').textContent.includes('999.extra')`,
+        ),
+      );
+      await js(
+        `[...document.querySelectorAll('.session-pagination button')].find(b => b.textContent === '上一页').click()`,
+      );
+      await until(() =>
+        js(`document.querySelectorAll('.session-row').length === 3`),
       );
       await js(
         `document.querySelectorAll('.session-row')[0].querySelector('button').click()`,
@@ -96,6 +112,30 @@ app.on("browser-window-created", (_e, win) => {
         throw new Error(
           "Terminal cannot receive keys: " + JSON.stringify(state),
         );
+      await js(
+        `window.fixtureTerminal = document.querySelector('.xterm-helper-textarea'); document.querySelector('.terminal-maximize').click()`,
+      );
+      await until(() =>
+        js(`(() => {
+        const rect = document.querySelector('.terminal-panel').getBoundingClientRect();
+        return rect.x === 0 && rect.y === 0 && rect.width === innerWidth && rect.height === innerHeight;
+      })()`),
+      );
+      await js(`document.querySelector('.terminal-maximize').click()`);
+      await until(() =>
+        js(
+          `!document.querySelector('.terminal-maximized') && document.querySelector('.terminal-panel').getBoundingClientRect().x > 0`,
+        ),
+      );
+      if (
+        !(await js(
+          `window.fixtureTerminal === document.querySelector('.xterm-helper-textarea') && document.activeElement === window.fixtureTerminal`,
+        ))
+      )
+        throw new Error("Maximize replaced terminal or lost input focus");
+      console.log(
+        "LAYOUT PASSED: three sessions per page; terminal fills window and restores without remounting",
+      );
       win.focus();
       for (const c of "echo terminal-test")
         win.webContents.sendInputEvent({ type: "char", keyCode: c });

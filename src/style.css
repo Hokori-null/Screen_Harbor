@@ -278,6 +278,23 @@ header p {
   border-radius: 9px;
   overflow: hidden;
 }
+.session-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 18px;
+  border-top: 1px solid #263243;
+  color: #8d9db0;
+  font-size: 11px;
+}
+.session-pagination span {
+  margin-right: auto;
+}
+.session-pagination button {
+  padding: 5px 9px;
+  font-size: 11px;
+}
 .table-head,
 .session-row {
   display: grid;
@@ -358,6 +375,9 @@ header p {
 }
 .terminal-heading {
   display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
   justify-content: space-between;
   padding: 13px 16px;
   background: #18212d;
@@ -366,8 +386,35 @@ header p {
   border-bottom: 1px solid #283445;
 }
 .terminal-heading small {
+  margin-left: auto;
   font-size: 10px;
   color: #73859d;
+}
+.terminal-maximize {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+.terminal-maximized > .sidebar,
+.terminal-maximized > main > header,
+.terminal-maximized > main > .sessions,
+.terminal-maximized > main > footer {
+  display: none;
+}
+.terminal-maximized > main {
+  padding: 0;
+}
+.terminal-maximized .terminal-panel {
+  border: 0;
+  border-radius: 0;
+  min-height: 0;
+}
+.terminal-maximized .error {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 5;
+  margin: 0;
 }
 .tabs {
   display: flex;

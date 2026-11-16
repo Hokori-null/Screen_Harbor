@@ -16,6 +16,7 @@ type Tab = {
 };
 const terminals = new Map<string, { term: Terminal; fit: FitAddon }>();
 const pending = new Map<string, string[]>();
+const SESSION_PAGE_SIZE = 3;
 function TerminalView({ tab, active }: { tab: Tab; active: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -134,8 +135,20 @@ function App() {
     } | null>(null),
     [sessionName, setSessionName] = useState("");
   const [deleteId, setDeleteId] = useState("");
+  const [terminalMaximized, setTerminalMaximized] = useState(false);
+  const [sessionPages, setSessionPages] = useState<Record<string, number>>({});
   const current = servers.find((s) => s.id === selected),
     connected = statuses[selected] === "connected";
+  const currentSessions = sessions[selected] ?? [];
+  const pageCount = Math.max(
+    1,
+    Math.ceil(currentSessions.length / SESSION_PAGE_SIZE),
+  );
+  const sessionPage = Math.min(sessionPages[selected] ?? 1, pageCount);
+  const visibleSessions = currentSessions.slice(
+    (sessionPage - 1) * SESSION_PAGE_SIZE,
+    sessionPage * SESSION_PAGE_SIZE,
+  );
   const refreshServers = async () => {
     const list = await api.call("list", {});
     setServers(list);
@@ -146,6 +159,13 @@ function App() {
   const refresh = async (id: string) => {
     const list = await api.call("sessions", { serverId: id });
     setSessions((s) => ({ ...s, [id]: list }));
+    setSessionPages((pages) => ({
+      ...pages,
+      [id]: Math.min(
+        pages[id] ?? 1,
+        Math.max(1, Math.ceil(list.length / SESSION_PAGE_SIZE)),
+      ),
+    }));
     return list;
   };
   async function run(action: () => Promise<unknown>) {
@@ -279,7 +299,7 @@ function App() {
     if (statuses[tab.serverId] === "connected") await refresh(tab.serverId);
   }
   return (
-    <div className="app">
+    <div className={"app" + (terminalMaximized ? " terminal-maximized" : "")}>
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-icon">▤</span>
@@ -422,7 +442,7 @@ function App() {
                 <span>状态</span>
                 <span>操作</span>
               </div>
-              {sessions[selected].map((s) => (
+              {visibleSessions.map((s) => (
                 <div className="session-row" key={s.id}>
                   <div className="session-label">
                     <span className="session-icon">›_</span>
@@ -474,6 +494,36 @@ function App() {
                   </div>
                 </div>
               ))}
+              {pageCount > 1 && (
+                <nav className="session-pagination" aria-label="会话分页">
+                  <span aria-live="polite">
+                    共 {currentSessions.length} 个会话 · 第 {sessionPage} /{" "}
+                    {pageCount} 页
+                  </span>
+                  <button
+                    disabled={sessionPage === 1}
+                    onClick={() =>
+                      setSessionPages((pages) => ({
+                        ...pages,
+                        [selected]: sessionPage - 1,
+                      }))
+                    }
+                  >
+                    上一页
+                  </button>
+                  <button
+                    disabled={sessionPage === pageCount}
+                    onClick={() =>
+                      setSessionPages((pages) => ({
+                        ...pages,
+                        [selected]: sessionPage + 1,
+                      }))
+                    }
+                  >
+                    下一页
+                  </button>
+                </nav>
+              )}
             </div>
           )}
         </section>
@@ -481,6 +531,17 @@ function App() {
           <div className="terminal-heading">
             <span>⌁ 终端</span>
             <small>Ctrl + Shift + C / V 复制粘贴 · 关闭标签保留会话</small>
+            <button
+              className="terminal-maximize"
+              aria-pressed={terminalMaximized}
+              title={terminalMaximized ? "还原终端布局" : "终端铺满窗口"}
+              onClick={() => {
+                setTerminalMaximized((value) => !value);
+                terminals.get(active)?.term.focus();
+              }}
+            >
+              {terminalMaximized ? "还原" : "最大化"}
+            </button>
           </div>
           <div className="tabs">
             {tabs.map((t) => (
