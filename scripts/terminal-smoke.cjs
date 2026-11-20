@@ -43,7 +43,7 @@ const remote = new Server({ hostKeys: [key] }, (client) => {
           );
           ch.exit(0);
           ch.end();
-        } else if (info.command.startsWith("screen -r")) {
+        } else if (info.command.startsWith("screen -A -r")) {
           const name = info.command.includes("123.work") ? "work" : "logs";
           if (name === "work") workChannel = ch;
           ch.write("fixture> ");

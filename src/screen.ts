@@ -29,5 +29,5 @@ export const commands = {
   end: (id: string) =>
     `LC_ALL=C screen -S ${quote(sessionSchema.parse(id))} -X quit`,
   attach: (id: string, takeover: boolean) =>
-    `screen ${takeover ? "-d -r" : "-r"} ${quote(sessionSchema.parse(id))}`,
+    `screen -A ${takeover ? "-d -r" : "-r"} ${quote(sessionSchema.parse(id))}`,
 };

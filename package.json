@@ -1,7 +1,7 @@
 {
   "name": "screen-harbor",
   "productName": "Screen Harbor",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Remote GNU Screen session manager",
   "author": "Screen Harbor",
   "license": "MIT",

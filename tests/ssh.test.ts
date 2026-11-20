@@ -43,7 +43,7 @@ beforeAll(async () => {
             );
             stream.exit(0);
             stream.end();
-          } else if (info.command === "screen -r '123.work'") {
+          } else if (info.command === "screen -A -r '123.work'") {
             stream.write("ready> ");
             stream.on("data", (data: Buffer) => stream.write(data));
           } else {

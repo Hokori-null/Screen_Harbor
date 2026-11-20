@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -19,7 +20,7 @@ const pending = new Map<string, string[]>();
 const SESSION_PAGE_SIZE = 3;
 function TerminalView({ tab, active }: { tab: Tab; active: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const term = new Terminal({
       fontFamily: "Cascadia Code, Consolas, monospace",
       fontSize: 14,
@@ -232,16 +233,19 @@ function App() {
       closed: false,
     };
     pending.set(id, []);
-    setTabs((ts) => [...ts, tab]);
-    setActive(id);
+    flushSync(() => {
+      setTabs((ts) => [...ts, tab]);
+      setActive(id);
+    });
     try {
+      const { term } = terminals.get(id)!;
       await api.call("attach", {
         serverId: server.id,
         sessionId: session.id,
         terminalId: id,
         takeover: session.state === "Attached",
-        cols: 100,
-        rows: 28,
+        cols: term.cols,
+        rows: term.rows,
       });
       const t = terminals.get(id);
       if (t) {
