@@ -144,6 +144,26 @@ app.on("browser-window-created", (_e, win) => {
       await until(() => received.work.includes("echo terminal-test\r"));
       await win.webContents.insertText("中文");
       await until(() => received.work.includes("中文"));
+      const beforePaste = received.work;
+      const defaultPrevented = await js(`(() => {
+        const clipboard = navigator.clipboard;
+        Object.defineProperty(clipboard, 'readText', {
+          configurable: true, value: async () => '粘贴-test'
+        });
+        try {
+          const key = new KeyboardEvent('keydown', {
+            key: 'V', code: 'KeyV', ctrlKey: true, shiftKey: true,
+            bubbles: true, cancelable: true
+          });
+          document.activeElement.dispatchEvent(key);
+          return key.defaultPrevented;
+        } finally {
+          delete clipboard.readText;
+        }
+      })()`);
+      if (!defaultPrevented)
+        throw new Error("Terminal shortcut also allowed the browser to paste");
+      await until(() => received.work === beforePaste + "粘贴-test");
       await js(
         `document.querySelectorAll('.session-row')[1].querySelector('button').click()`,
       );

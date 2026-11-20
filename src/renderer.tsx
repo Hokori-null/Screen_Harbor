@@ -91,6 +91,8 @@ function TerminalView({ tab, active }: { tab: Tab; active: boolean }) {
         return false;
       }
       if (event.ctrlKey && event.shiftKey && event.code === "KeyV") {
+        // Returning false skips xterm's key handling but still allows Chromium's paste.
+        event.preventDefault();
         void navigator.clipboard.readText().then((text) => term.paste(text));
         return false;
       }
