@@ -46,7 +46,7 @@ const remote = new Server({ hostKeys: [key] }, (client) => {
         } else if (info.command.startsWith("screen -A -r")) {
           const name = info.command.includes("123.work") ? "work" : "logs";
           if (name === "work") workChannel = ch;
-          ch.write("fixture> ");
+          ch.write("\x1b[?1049hfixture> ");
           ch.on("data", (bytes) => {
             received[name] += bytes.toString("utf8");
             ch.write(bytes);
@@ -193,13 +193,15 @@ app.on("browser-window-created", (_e, win) => {
         );
       await until(async () => (await top()) > 100);
       const beforeScroll = await top();
-      const wheel = () =>
+      const wheel = (deltaY = -120) =>
         js(
-          `document.querySelector('.terminal-viewport.active .xterm-screen').dispatchEvent(new WheelEvent('wheel', {deltaY:-120, bubbles:true, cancelable:true}))`,
+          `document.querySelector('.terminal-viewport.active .xterm-screen').dispatchEvent(new WheelEvent('wheel', {deltaY:${deltaY}, bubbles:true, cancelable:true}))`,
         );
       const beforeInput = received.work;
       await wheel();
       await until(async () => (await top()) < beforeScroll);
+      await wheel(120);
+      await until(async () => (await top()) === beforeScroll);
       // Alternate buffer without and with remote mouse reporting must never
       // turn a wheel gesture into terminal input.
       for (const mode of ["\x1b[?1049h", "\x1b[?1000h\x1b[?1006h"]) {

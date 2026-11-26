@@ -36,6 +36,19 @@ function TerminalView({ tab, active }: { tab: Tab; active: boolean }) {
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(ref.current!);
+    // GNU Screen can enter the alternate buffer for the entire attachment.
+    // Keep that outer display in the normal buffer so xterm retains history.
+    // Nested switches from full-screen programs still use xterm's handlers.
+    let screenBufferDepth = 0;
+    for (const final of ["h", "l"]) {
+      term.parser.registerCsiHandler({ prefix: "?", final }, (params) => {
+        if (params.length !== 1 || ![47, 1047, 1049].includes(Number(params[0])))
+          return false;
+        if (final === "h") return ++screenBufferDepth === 1;
+        if (screenBufferDepth === 0) return false;
+        return --screenBufferDepth === 0;
+      });
+    }
     // Wheel gestures belong to local history, never remote arrow keys or
     // mouse reports (including Screen's alternate-screen mode).
     let wheelRemainder = 0;
